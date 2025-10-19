@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 MetaMachines LLC
+#
+# SPDX-License-Identifier: MIT
+
 from cuda.core.experimental import Device, Program, ProgramOptions
 
 import sys

@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "mm-ptx"
-version = "0.1.1"
+version = "0.1.2"
 authors = [{name = "MetaMachines LLC", email = "contact@metamachines.co"}]
 description = "PTX Inject and Stack PTX for Python"
 readme = "README.md"

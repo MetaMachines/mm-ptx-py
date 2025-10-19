@@ -22,11 +22,11 @@ class ArgType(ArgTypeEnum):
 
 @unique
 class PtxInstruction(create_instruction_enum(ArgType)):
-    add_u32 =       (auto(),    "add.u32",      [ArgType.u32, ArgType.u32],     [ArgType.u32])
-    add_ftz_f32 =   (auto(),    "add.ftz.f32",  [ArgType.f32, ArgType.f32],     [ArgType.f32])
-    mul_ftz_f32 =   (auto(),    "mul.ftz.f32",  [ArgType.f32, ArgType.f32],     [ArgType.f32])
-    sin_approx_ftz_f32 =   (auto(),    "sin.approx.ftz.f32",  [ArgType.f32],     [ArgType.f32])
-    cos_approx_ftz_f32 =   (auto(),    "cos.approx.ftz.f32",  [ArgType.f32],     [ArgType.f32])
+    add_u32 =               (auto(),    "add.u32",              [ArgType.u32, ArgType.u32],     [ArgType.u32])
+    add_ftz_f32 =           (auto(),    "add.ftz.f32",          [ArgType.f32, ArgType.f32],     [ArgType.f32])
+    mul_ftz_f32 =           (auto(),    "mul.ftz.f32",          [ArgType.f32, ArgType.f32],     [ArgType.f32])
+    sin_approx_ftz_f32 =    (auto(),    "sin.approx.ftz.f32",  [ArgType.f32],                   [ArgType.f32])
+    cos_approx_ftz_f32 =    (auto(),    "cos.approx.ftz.f32",  [ArgType.f32],                   [ArgType.f32])
 
 @unique
 class SpecialRegister(create_special_register_enum(ArgType)):

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15...3.30)
-project(nano_adder)
+project(mm_ptx)
 
 # Option to enable/disable Python bindings
 option(BUILD_PYTHON_BINDINGS "Build Python bindings with Nanobind" OFF)
@@ -14,13 +14,13 @@ if(BUILD_PYTHON_BINDINGS)
         if(nanobind_FOUND)
             message(STATUS "Python and Nanobind found, building Python bindings")
             nanobind_add_module(
-                _ptx_inject # Module name (matches __init__.py import)
+                _ptx_inject
                 src/bindings/ptx_inject_bindings.cpp
             )
             target_include_directories(_ptx_inject PRIVATE src/bindings)
             install(TARGETS _ptx_inject LIBRARY DESTINATION mm_ptx/ptx_inject/_impl)
             nanobind_add_module(
-                _stack_ptx # Module name (matches __init__.py import)
+                _stack_ptx
                 src/bindings/stack_ptx_bindings.cpp
             )
             target_include_directories(_stack_ptx PRIVATE src/bindings)

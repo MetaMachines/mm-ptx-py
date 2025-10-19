@@ -767,17 +767,22 @@ _ptx_inject_parse_argument(
     
     argument_ptr = _ptx_inject_str_whitespace(argument_ptr);
 
-    *data_type_idx_ref = num_data_type_infos;
+    size_t data_type_max_len_matched = 0;
     for (size_t i = 0; i < num_data_type_infos; i++) {
         const char* data_type_str = data_type_infos[i].name;
-        if (_ptx_inject_strcmp_advance(&argument_ptr, data_type_str)) {
-            *data_type_idx_ref = i;
+        size_t this_len = strlen(data_type_str);
+        if (strncmp(argument_ptr, data_type_str, this_len) == 0) {
+            if (this_len > data_type_max_len_matched) {
+                *data_type_idx_ref = i;
+                data_type_max_len_matched = this_len;
+            }
         }
     }
 
-    if (*data_type_idx_ref >= num_data_type_infos) {
+    if (data_type_max_len_matched == 0) {
         _PTX_INJECT_ERROR( PTX_INJECT_ERROR_FORMATTING );
     }
+    argument_ptr += data_type_max_len_matched;
 
     size_t var_name_start;
     size_t var_name_length;

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 MetaMachines LLC
+#
+# SPDX-License-Identifier: MIT
 
 # For this example we're now going to fuse both the Stack PTX and the PTX Inject systems in to one.
 # We're going to declare a kernel with a PTX_INJECT declaration. We'll pull out the 

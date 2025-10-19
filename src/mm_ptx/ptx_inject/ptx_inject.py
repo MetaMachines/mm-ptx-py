@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 MetaMachines LLC
+#
+# SPDX-License-Identifier: MIT
+
 from __future__ import annotations
 
 from enum import IntEnum, Enum, unique, auto

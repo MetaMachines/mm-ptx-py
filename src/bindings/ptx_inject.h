@@ -19,7 +19,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
- * SPDX-License-Identifier: MIT (optional, for machine-readability)
+ * SPDX-License-Identifier: MIT
  */
 
  /**

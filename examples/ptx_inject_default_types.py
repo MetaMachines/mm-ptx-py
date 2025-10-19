@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 MetaMachines LLC
+#
+# SPDX-License-Identifier: MIT
+
 from mm_ptx.ptx_inject import DataTypeInfoEnum
 
 from enum import auto, unique

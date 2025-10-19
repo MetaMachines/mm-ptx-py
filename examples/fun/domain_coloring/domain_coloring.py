@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 MetaMachines LLC
+#
+# SPDX-License-Identifier: MIT
 
 import sys
 import os
@@ -315,9 +318,9 @@ tensor = run_kernel(height=1024, width=1024, num_batches=40, time_step=0.2)
 
 this_dir = os.path.dirname(__file__)
 
-show_image(this_dir + '/domain_coloring_output.png', tensor, image_num=39)
+show_image('domain_coloring_output.png', tensor, image_num=39)
 
 tensor = run_kernel(height=1024, width=1024, num_batches=240, time_step=0.01)
 print("Generating video")
-render_video(this_dir + '/domain_coloring_video.mp4', tensor)
+render_video('domain_coloring_video.mp4', tensor)
 

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 MetaMachines LLC
+#
+# SPDX-License-Identifier: MIT
+
 from .stack_ptx import (
     StackTypeEnum, 
     ArgTypeEnum,

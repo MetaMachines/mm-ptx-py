@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 MetaMachines LLC
+#
+# SPDX-License-Identifier: MIT
 
 import sys
 import os
@@ -293,5 +296,5 @@ for i in range(64):
 
 grid_tensor = montage_tensors(outs, 8, 8)
 
-generate_gif(this_dir + '/domain_coloring_output.gif', grid_tensor, duration=100)
+generate_gif('domain_coloring_output.gif', grid_tensor, duration=100)
 

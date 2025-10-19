@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 MetaMachines LLC
+#
+# SPDX-License-Identifier: MIT
 
 # This example is mostly the same as stack_ptx_inject 00_simple.py except we'll print
 # out the value from the special register %clock using Stack PTX.

@@ -119,7 +119,7 @@ If you use this software in your work, please cite it using the following BibTeX
 @software{Durham_mm-ptx_2025,
   author       = {Durham, Charlie},
   title        = {mm-ptx: PTX Inject and Stack PTX for Python},
-  version      = {0.1.0},
+  version      = {0.1.2},
   date-released = {2025-10-19},
   url          = {https://github.com/MetaMachines/mm-ptx-py}
 }

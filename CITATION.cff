@@ -4,7 +4,7 @@ authors:
   - family-names: "Durham"
     given-names: "Charlie"
     email: "charlie@metamachines.co"
-title: "mm-ptx: High-performance C adder wrapped in Python with Nanobind"
+title: "mm-ptx: PTX Inject and Stack PTX for Python"
 version: 0.1.0
 date-released: 2025-10-19
 url: "https://github.com/MetaMachines/mm-ptx-py"

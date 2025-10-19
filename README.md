@@ -12,7 +12,7 @@ Explore working examples:
 - [PTX Inject examples](examples/ptx_inject/)
 - [Stack PTX examples](examples/stack_ptx/)
 - [Combined PTX Inject + Stack PTX examples](examples/stack_ptx_inject/)
-- [Fun examples](examples/fun/)
+- [Fun examples](examples/fun/README.md)
 
 The C based header files where most of the functionality is implemented is [ptx_inject.h](src/bindings/ptx_inject.h) and [stack_ptx.h](src/bindings/stack_ptx.h). If you are interested in running these with lower overhead in C/C++ or with parallel compilation see examples in [mm-ptx](https://github.com/MetaMachines/mm-ptx).
 
@@ -29,22 +29,7 @@ pip install mm-ptx
 
 This package has no dependency on NVIDIA CUDA toolkit or other tools beyond nanobind. `Stack PTX` and `PTX Inject` are pure header-only C libraries relying only on the C standard library.
 
-### mm-ptx examples
----
-Running the examples requires one of:
-```bash
-pip install cuda-core[cu11]
-```
-```bash
-pip install cuda-core[cu12]
-```
-```bash
-pip install cuda-core[cu13]
-```
-Depending on the version of the NVIDIA CUDA toolkit. Other dependencies for the examples can be installed with:
-```bash
-pip install cv2 Pillow torch numpy
-```
+For dependencies running the mm-ptx examples see [examples/README.md](examples/README.md)
 
 ## PTX Inject
 PTX Inject is a lightweight tool that enables dynamic modification of compiled GPU kernels by injecting custom low-level code (PTX) at user-specified points in annotated CUDA source. This allows for ultra-fast kernel variations and optimizations—ideal for algorithmic tuning, performance testing, or machine-driven experiments—without the overhead of full recompilation using tools like `nvcc` or `nvrtc`.

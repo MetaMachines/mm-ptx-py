@@ -10,7 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import the default data types from the helper.
 from ptx_inject_default_types import DataTypeInfo
-from compiler_helper import NvCompiler
+from compiler_helper import NvCompilerHelper
 
 # We'll use this simple kernel to PTX Inject.
 cuda_code = r"""
@@ -37,7 +37,7 @@ processed_cuda, num_injects = ptx_inject.process_cuda(DataTypeInfo, cuda_code)
 assert(num_injects == 1)
 
 # Use the compiler helper.
-nv_compiler = NvCompiler()
+nv_compiler = NvCompilerHelper()
 
 # This PTX was annotated to be ready for CUDA to PTX.
 annotated_ptx = nv_compiler.cuda_to_ptx(processed_cuda)

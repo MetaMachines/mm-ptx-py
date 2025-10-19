@@ -2,8 +2,8 @@
 import sys
 import os
 
-import ptx_tools.ptx_inject as ptx_inject
-import ptx_tools.stack_ptx as stack_ptx
+import mm_ptx.ptx_inject as ptx_inject
+import mm_ptx.stack_ptx as stack_ptx
 
 from cuda.core.experimental import LaunchConfig, launch
 
@@ -19,7 +19,7 @@ print(this_dir)
 from ptx_inject_default_types import DataTypeInfo
 from stack_ptx_default_types import Stack, PtxInstruction
 from stack_ptx_default_types import compiler as stack_ptx_compiler
-from compiler_helper import NvCompiler
+from compiler_helper import NvCompilerHelper
 
 from helpers import generate_gif, montage_tensors
 from generator_instructions import Generator
@@ -142,7 +142,7 @@ kernel(
 processed_cuda, num_injects = ptx_inject.process_cuda(DataTypeInfo, cuda_code)
 assert(num_injects == 1)
 
-nv_compiler = NvCompiler()
+nv_compiler = NvCompilerHelper()
 dev = nv_compiler.dev
 
 pt_stream = torch.cuda.current_stream()

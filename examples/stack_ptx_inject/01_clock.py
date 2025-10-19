@@ -15,7 +15,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from ptx_inject_default_types import DataTypeInfo
 from stack_ptx_default_types import Stack, PtxInstruction, SpecialRegister
 from stack_ptx_default_types import compiler as stack_ptx_compiler
-from compiler_helper import NvCompiler
+from compiler_helper import NvCompilerHelper
 
 cuda_code = r"""
 extern "C"
@@ -33,7 +33,7 @@ kernel() {
 processed_cuda, num_injects = ptx_inject.process_cuda(DataTypeInfo, cuda_code)
 assert(num_injects == 1)
 
-nv_compiler = NvCompiler()
+nv_compiler = NvCompilerHelper()
 
 annotated_ptx = nv_compiler.cuda_to_ptx(processed_cuda)
 

@@ -22,7 +22,7 @@ from ptx_inject_default_types import DataTypeInfo
 from stack_ptx_default_types import Stack, PtxInstruction
 from stack_ptx_default_types import compiler as stack_ptx_compiler
 
-from compiler_helper import NvCompiler
+from compiler_helper import NvCompilerHelper
 
 # We'll use this simple kernel to PTX Inject.
 # We'll declare that "x" is input only.
@@ -56,7 +56,7 @@ kernel() {
 processed_cuda, num_injects = ptx_inject.process_cuda(DataTypeInfo, cuda_code)
 assert(num_injects == 1)
 
-nv_compiler = NvCompiler()
+nv_compiler = NvCompilerHelper()
 
 # We now compile the CUDA to PTX.
 annotated_ptx = nv_compiler.cuda_to_ptx(processed_cuda)

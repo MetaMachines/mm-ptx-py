@@ -2,7 +2,7 @@ from cuda.core.experimental import Device, Program, ProgramOptions
 
 import sys
 
-class NvCompiler:
+class NvCompilerHelper:
     def __init__(self):
         self.dev = Device()
         self.dev.set_current()

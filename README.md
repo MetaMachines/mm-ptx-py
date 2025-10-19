@@ -64,12 +64,14 @@ Key features:
 
 * **Customizable Data Types**: Using Python you can describe the names and types used in the `PTX_INJECT` annotation. See [ptx_inject_default_types.py](examples/ptx_inject_default_types.py).
 
+* **No Dependencies**: Pure C99 implementation with Python bindings for easy use.
+
 A simple full working example can be found [here](examples/ptx_inject/00_simple.py).
 
 ## Stack PTX
-Stack PTX provides a stack-based interface for generating valid PTX code sequences, making it easy to create, modify, and evolve GPU instructions programmatically. Inspired by the [Push](https://faculty.hampshire.edu/lspector/push.html) language for genetic programming, it treats PTX operations as stack manipulations, ensuring code remains valid even after insertions, deletions, or rearrangements. Stack PTX handles register declarations, dead code elimination
+Stack PTX provides a stack-based interface for generating valid PTX code sequences, making it easy to create, modify, and evolve GPU instructions programmatically. Inspired by the [Push](https://faculty.hampshire.edu/lspector/push.html) language for genetic programming, it treats PTX operations as stack manipulations, ensuring code remains valid even after insertions, deletions, or rearrangements. 
 
-Stack PTX can write 100s instruction PTX stubs in single digit microseconds.
+Key features:
 
 * **Stack Machine Model**: Push constants and instructions onto a stack; operations pop operands and push results as abstract syntax trees (ASTs). 
     
@@ -94,6 +96,8 @@ Stack PTX can write 100s instruction PTX stubs in single digit microseconds.
 * **Dead Code Elimination**: Automatically optimizes by removing irrelevant operations from the final PTX output.
 
 * **Customizable Instructions**: Using Python you can describe the names and types used in the **Stack PTX** compiler. See [examples/stack_ptx_default_types.py](examples/stack_ptx_default_types.py) or look at [mm-kermac-py](https://github.com/MetaMachines/mm-kermac-py) for more complete definitions.
+
+* **Extremely Fast**: Can generate stubs/sequences of 100s of PTX instructions in single digit micros or better.
 
 * **No Dependencies**: Pure C99 implementation with Python bindings for easy use.
 

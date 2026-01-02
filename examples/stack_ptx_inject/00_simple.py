@@ -14,7 +14,7 @@ from enum import auto, unique
 import mm_ptx.ptx_inject as ptx_inject
 import mm_ptx.stack_ptx as stack_ptx
 
-from cuda.core.experimental import LaunchConfig, launch
+from cuda.core import LaunchConfig, launch
 
 # We'll import some default type info from the helpers.
 # Use the upper directory helpers

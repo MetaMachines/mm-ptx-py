@@ -1,76 +1,107 @@
-# MetaMachines PTX for Python
-> PTX Inject and Stack PTX for Python
+# mm-ptx (Python)
+PTX Inject and Stack PTX with Python bindings.
 
-**PTX Inject** and **Stack PTX** are lightweight, Python-friendly tools for advanced GPU kernel manipulation and generation using NVIDIA's PTX intermediate language. Designed for developers in high-performance computing, machine learning, and scientific simulations, these tools enable dynamic kernel optimizations, rapid experimentation, and automated code generation without the slowdowns of traditional compilation pipelines.
+This package ships two small, header-only C libraries plus Python wrappers:
+- PTX Inject: find marked sites in PTX and inject your own PTX at those sites.
+- Stack PTX: generate PTX stubs you can inject at those sites.
 
-- **PTX Inject**: Dynamically inject custom PTX code into annotated CUDA kernels for ultra-fast variations and tuning.
-- **Stack PTX**: Generate valid PTX code sequences using a stack-based machine, inspired by evolutionary programming languages like [Push](https://faculty.hampshire.edu/lspector/push.html), for flexible and error-resilient code construction.
+## PTX Inject: what you write
+Mark a site in CUDA with macros:
+```c++
+#include <ptx_inject.h>
 
-Both tools are built on efficient, header-only C libraries with Python bindings for seamless integration into your workflows. They support high-throughput operations, making them ideal for algorithmic exploration or performance benchmarking on GPUs.
-
-Explore working examples:
-- [PTX Inject examples](examples/ptx_inject/)
-- [Stack PTX examples](examples/stack_ptx/)
-- [Combined PTX Inject + Stack PTX examples](examples/stack_ptx_inject/)
-- [Fun examples](examples/fun/README.md)
-
-The C header files are bundled at [ptx_inject.h](src/mm_ptx/include/ptx_inject.h) and [stack_ptx.h](src/mm_ptx/include/stack_ptx.h). You can access their install path from Python via `mm_ptx.get_include_dir()`. If you are interested in running these with lower overhead in C/C++ or with parallel compilation see examples in [mm-ptx](https://github.com/MetaMachines/mm-ptx).
-
-[mm-kermac-py](https://github.com/MetaMachines/mm-kermac-py) uses **PTX Inject** and **Stack PTX** to allow users to dynamically create custom [semiring](https://en.wikipedia.org/wiki/Semiring) and semiring gradient PyTorch Tensor kernels with arbitrary amounts of hyperparameters. Recompilation of it's custom [CuTe](https://github.com/NVIDIA/cutlass/blob/main/media/docs/cpp/cute/00_quickstart.md) CUDA kernels can take **~3 seconds**, however recompiling the CuTe kernel from PTX to SASS with injected PTX code takes as little as **60ms**.
-
-## Installation
-
-### mm-ptx
----
-To instal mm-ptx use:
-```bash
-pip install mm-ptx
+extern "C"
+__global__
+void kernel(float* out) {
+    float x = 5.0f;
+    float y = 3.0f;
+    float z = 0.0f;
+    PTX_INJECT("func",
+        PTX_IN (F32, x, x),
+        PTX_MOD(F32, y, y),
+        PTX_OUT(F32, z, z)
+    );
+    out[0] = z;
+}
 ```
 
-This package has no dependency on NVIDIA CUDA toolkit or other tools beyond nanobind. `Stack PTX` and `PTX Inject` are pure header-only C libraries relying only on the C standard library.
+Compile the CUDA to PTX (nvcc or cuda.core), then build and inject a stub in Python:
+```python
+from mm_ptx.ptx_inject import PTXInject
 
-For dependencies running the mm-ptx examples see [examples/README.md](examples/README.md)
+annotated_ptx = "..."  # PTX from nvcc/cuda.core
+inject = PTXInject(annotated_ptx)
 
-## PTX Inject
-PTX Inject is a lightweight tool that enables dynamic modification of compiled GPU kernels by injecting custom low-level code (PTX) at user-specified macro sites in CUDA source. This allows for ultra-fast kernel variations and optimizations—ideal for algorithmic tuning, performance testing, or machine-driven experiments—without the overhead of full recompilation using tools like `nvcc` or `nvrtc`.
+func = inject["func"]
+stub = (
+    f"\tadd.ftz.f32 %{func['y'].reg}, %{func['x'].reg}, %{func['y'].reg};\n"
+    f"\tadd.ftz.f32 %{func['z'].reg}, %{func['x'].reg}, %{func['y'].reg};"
+)
 
-By parsing PTX markers emitted by the `PTX_INJECT` macros, it extracts register mappings and prepares templates for injection, achieving preparation in milliseconds and supporting tens of thousands of injections per second per CPU core. The result is efficient, parallelizable compilation to executable GPU code (SASS) using `ptxas` or [`nvPtxCompiler`](https://docs.nvidia.com/cuda/ptx-compiler-api/index.html), making it suitable for high-throughput workflows in compute-intensive applications like machine learning or scientific simulations.
+final_ptx = inject.render_ptx({"func": stub})
+```
 
-Key features:
+This would be equivalent to writing this CUDA kernel directly but without the CUDA to PTX compilation overhead:
+```c++
+extern "C"
+__global__
+void kernel(float* out) {
+    float x = 5.0f;
+    float y = 3.0f;
+    float z = 0.0f;
+    y = x + y;
+    z = x + y;
+    out[0] = z;
+}
+```
 
-* **Macro-Based Injection**: Mark sites in CUDA kernels with PTX macros.
-    ```c++
-    #include <stdio.h>
-    #include <ptx_inject.h>
+If you do not want to hand-write PTX, you can use Stack PTX to generate the stub:
+```python
+from mm_ptx.stack_ptx import RegisterRegistry
+from stack_ptx_default_types import Stack, PtxInstruction, compiler
 
-    extern "C"
-    __global__
-    void kernel() {
-        float x = 3.0f;
-        float y = 4.0f;
-        float z;
-        PTX_INJECT("func",
-            PTX_IN (F32, x, x),
-            PTX_IN (F32, y, y),
-            PTX_OUT(F32, z, z)
-        );
-        printf("z: %f\n", z);
-    }
-    ```
+# Setup naming associations
+registry = RegisterRegistry()
+registry.add(func["x"].reg, Stack.f32, name="x")
+registry.add(func["y"].reg, Stack.f32, name="y")
+registry.add(func["z"].reg, Stack.f32, name="z")
+registry.freeze()
 
-* **Register Mapping Extraction**: Parses PTX markers to map CUDA variables to stable PTX registers, handling multiple site inlining and loop unrolling.
+# Instructions to run
+instructions = [
+    registry.x,                     # Push 'x'
+    registry.y,                     # Push 'y'
+    PtxInstruction.add_ftz_f32,     # Pop 'x', Pop 'y', Push ('x' + 'y')
+    registry.x,                     # Push 'x'
+    PtxInstruction.add_ftz_f32      # Pop 'x', Pop ('x' + 'y'), Push ('x' + ('x' + 'y')) 
+]
 
-* **High Performance**: Prepares templates in **~4ms** and supports **~10,000** injections per second per CPU core.
+# Create ptx stub
+ptx_stub = compiler.compile(
+    registry=registry,
+    instructions=instructions,
+    requests=[registry.z],
+    ...
+)
 
-* **Parallel Compilation**: Outputs PTX ready for fast compilation to SASS using the PTX Compiler API, with loading times under 1ms.
+# Inject the ptx stub in to the ptx inject site/s
+final_ptx = inject.render_ptx({"func": ptx_stub})
+```
 
-* **Customizable Type Tokens**: Define `PTX_TYPE_INFO_<TOKEN>` in CUDA to add new tokens. In Python, `InjectArg.data_type` is the token string (for example, `F32`).
+This would be equivalent to writing this CUDA kernel directly but without the CUDA to PTX compilation overhead:
+```c++
+extern "C"
+__global__
+void kernel(float* out) {
+    float x = 5.0f;
+    float y = 3.0f;
+    float z = 0.0f;
+    z = x + (x + y);
+    out[0] = z;
+}
+```
 
-* **No Dependencies**: Pure C99 implementation with Python bindings for easy use.
-
-### CUDA header access
-The package bundles `ptx_inject.h` for use with `nvcc`, `nvrtc`, or `cuda.core`:
-
+## Header access
 ```python
 from mm_ptx import get_include_dir, get_ptx_inject_header
 
@@ -78,61 +109,35 @@ include_dir = get_include_dir()
 header_path = get_ptx_inject_header().replace("\\", "/")
 ```
 
-Pass `include_dir` to your compiler options, or include the header by absolute path in your CUDA source:
-
+Include the header by absolute path if you want:
 ```c++
 #include "<header_path>"
 ```
 
-A simple full working example can be found [here](examples/ptx_inject/00_simple.py).
+## Install
+```bash
+pip install mm-ptx
+```
 
-## Stack PTX
-Stack PTX provides a stack-based interface for generating valid PTX code sequences, making it easy to create, modify, and evolve GPU instructions programmatically. Inspired by the [Push](https://faculty.hampshire.edu/lspector/push.html) language for genetic programming, it treats PTX operations as stack manipulations, ensuring code remains valid even after insertions, deletions, or rearrangements. 
+Requires Python 3.9+.
 
-Key features:
+## Examples
+- [PTX Inject](examples/ptx_inject/)
+- [Stack PTX](examples/stack_ptx/)
+- [PTX Inject + Stack PTX](examples/stack_ptx_inject/)
+- [Fun](examples/fun/README.md)
 
-* **Stack Machine Model**: Push constants and instructions onto a stack; operations pop operands and push results as abstract syntax trees (ASTs). 
-    
-    For example:
-    ```python
-        instructions = [
-            registry.x,
-            registry.y,
-            PtxInstruction.add_ftz_f32
-        ]
-        requests = [registry.z]
-    ```
-    Will take the register names from the variables 'x' and 'y' and add them together with the `add.ftz.f32` PTX instruction and assign the result to the register name for 'z'. Creating a stub like:
-    ```
-        {
-        .reg .u32 %_c<1>;
-        add.u32 %_c0, %z1, %z2;
-        mov.u32 %z0, %_c0;
-        }
-    ```
-
-* **Dead Code Elimination**: Automatically optimizes by removing irrelevant operations from the final PTX output.
-
-* **Customizable Instructions**: Using Python you can describe the names and types used in the **Stack PTX** compiler. See [examples/stack_ptx_default_types.py](examples/stack_ptx_default_types.py) or look at [mm-kermac-py](https://github.com/MetaMachines/mm-kermac-py) for more complete definitions.
-
-* **Extremely Fast**: Can generate stubs/sequences of 100s of PTX instructions in single digit micros or better.
-
-* **No Dependencies**: Pure C99 implementation with Python bindings for easy use.
-
-See a simple Stack PTX example [here](examples/stack_ptx/00_simple.py).
-
-## Stack PTX Inject
-Both systems are meant to be used together to dynamically create new and potentially novel CUDA kernels extremely quickly and safely. 
-
-* A simple example combining the two systems can be found [here](examples/stack_ptx_inject/00_simple.py).
-
-* [domain_coloring.py](examples/fun/domain_coloring/domain_coloring.py) and [domain_coloring_random.py](examples/fun/domain_coloring_random/domain_coloring_random.py) are examples of using PTX Inject and Stack PTX to randomly create and run dynamic kernels to do [domain_coloring](examples/fun/README.md) where we generate plots of function gradients.
+## More details
+For the C/C++ headers and deeper implementation notes, see the mm-ptx repo:
+- https://github.com/MetaMachines/mm-ptx/blob/dev/README.md
+- https://github.com/MetaMachines/mm-ptx/blob/dev/PTX_INJECT.md
+- https://github.com/MetaMachines/mm-ptx/blob/dev/STACK_PTX.md
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT. See `LICENSE`.
 
 ## Citation
-If you use this software in your work, please cite it using the following BibTeX entry (generated from the [CITATION.cff](CITATION.cff) file):
+If you use this software in your work, please cite it using the following BibTeX entry (generated from `CITATION.cff`):
 ```bibtex
 @software{Durham_mm-ptx_2025,
   author       = {Durham, Charlie},

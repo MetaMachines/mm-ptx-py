@@ -27,7 +27,7 @@ NB_MODULE(_ptx_inject, m) {
         .value("PTX_INJECT_RESULT_NUM_ENUMS",                   PTX_INJECT_RESULT_NUM_ENUMS,                    "The number of result enums.")
         .export_values();
 
-    nb::enum_<PtxInjectMutType>(m, "PtxInjectMutType", "Specifies how the inline-ptx sets the variable, as modifiable, output or input.")
+    nb::enum_<PtxInjectMutType>(m, "PtxInjectMutType", "Specifies how the inline PTX treats the variable: output, read-write, or input.")
         .value("PTX_INJECT_MUT_TYPE_OUT",       PTX_INJECT_MUT_TYPE_OUT)
         .value("PTX_INJECT_MUT_TYPE_MOD",       PTX_INJECT_MUT_TYPE_MOD)
         .value("PTX_INJECT_MUT_TYPE_IN",        PTX_INJECT_MUT_TYPE_IN)
@@ -35,316 +35,191 @@ NB_MODULE(_ptx_inject, m) {
         .export_values();
 
     m.def(
-        "ptx_inject_result_to_string", 
-        &ptx_inject_result_to_string, 
-        nb::arg("PtxInjectResult"),
+        "ptx_inject_result_to_string",
+        &ptx_inject_result_to_string,
+        nb::arg("result"),
         "Converts a PtxInjectResult enum value to a human-readable string."
     );
 
     m.def(
-        "ptx_inject_process_cuda",
-        [](
-            nb::list data_type_info_names,
-            nb::list data_type_info_register_types,
-            nb::list data_type_info_mov_postfixes,
-            nb::list data_type_info_register_char,
-            nb::list data_type_info_register_cast_str,
-            const char* annotated_cuda_src, 
-            nb::object processed_cuda_buffer_obj
-        ) {
-            size_t num_data_type_infos = data_type_info_names.size();
-            if (
-                (size_t) data_type_info_names.size()               != num_data_type_infos ||
-                (size_t) data_type_info_mov_postfixes.size()       != num_data_type_infos ||
-                (size_t) data_type_info_register_char.size()       != num_data_type_infos ||
-                (size_t) data_type_info_register_cast_str.size()   != num_data_type_infos
-            ) {
-                nb::raise_type_error("All data_type_info lists must have identical length == num_data_type_infos");
-            }
-
-            size_t processed_cuda_buffer_size = 0;
-            size_t processed_cuda_bytes_written = 0;
-            size_t num_inject_sites = 0;
-
-            char* processed_cuda_buffer = nullptr;
-
-            std::vector<PtxInjectDataTypeInfo> data_type_infos(num_data_type_infos);
-            for (size_t i = 0; i < num_data_type_infos; i++) {
-                PtxInjectDataTypeInfo data_type_info = {
-                    nb::cast<const char*>(data_type_info_names[i]),
-                    nb::cast<const char*>(data_type_info_register_types[i]),
-                    nb::cast<const char*>(data_type_info_mov_postfixes[i]),
-                    nb::cast<char>(data_type_info_register_char[i]),
-                    nb::cast<const char*>(data_type_info_register_cast_str[i])
-                };
-                data_type_infos[i] = data_type_info;
-            }
-
-            if (nb::isinstance<nb::bytearray>(processed_cuda_buffer_obj)) {
-                nb::bytearray ba = nb::cast<nb::bytearray>(processed_cuda_buffer_obj);
-                processed_cuda_buffer = reinterpret_cast<char*>(ba.data());
-                processed_cuda_buffer_size = ba.size();
-            } else if (!processed_cuda_buffer_obj.is_none()) {
-                nb::raise_type_error("processed_cuda_buffer must by bytearray or None");
-            }
-
-            PtxInjectResult result = ptx_inject_process_cuda(
-                data_type_infos.data(),
-                num_data_type_infos,
-                annotated_cuda_src,
-                processed_cuda_buffer,
-                processed_cuda_buffer_size,
-                &processed_cuda_bytes_written,
-                &num_inject_sites
-            );
-                
-            return nb::make_tuple(result, processed_cuda_bytes_written, num_inject_sites);
-        },
-        nb::arg("data_type_info_names"),
-        nb::arg("data_type_info_register_types"),
-        nb::arg("data_type_info_mov_postfixes"),
-        nb::arg("data_type_info_register_char"),
-        nb::arg("data_type_info_register_cast_str"),
-        nb::arg("annotated_cuda_src"),
-        nb::arg("buffer").none(),
-        "Process CUDA source code with PTX injection, returning the result, processed buffer, bytes written, and number of injection sites."
-    );
-
-    m.def(
-        "ptx_inject_create", 
-        [](
-            nb::list data_type_info_names,
-            nb::list data_type_info_register_types,
-            nb::list data_type_info_mov_postfixes,
-            nb::list data_type_info_register_char,
-            nb::list data_type_info_register_cast_str,
-            const char* processed_ptx_src
-        ) {
-            size_t num_data_type_infos = data_type_info_names.size();
-            if (
-                (size_t) data_type_info_names.size()               != num_data_type_infos ||
-                (size_t) data_type_info_mov_postfixes.size()       != num_data_type_infos ||
-                (size_t) data_type_info_register_char.size()       != num_data_type_infos ||
-                (size_t) data_type_info_register_cast_str.size()   != num_data_type_infos
-            ) {
-                nb::raise_type_error("All data_type_info lists must have identical length == num_data_type_infos");
-            }
-
-            std::vector<PtxInjectDataTypeInfo> data_type_infos(num_data_type_infos);
-            for (size_t i = 0; i < num_data_type_infos; i++) {
-                PtxInjectDataTypeInfo data_type_info = {
-                    nb::cast<const char*>(data_type_info_names[i]),
-                    nb::cast<const char*>(data_type_info_register_types[i]),
-                    nb::cast<const char*>(data_type_info_mov_postfixes[i]),
-                    nb::cast<char>(data_type_info_register_char[i]),
-                    nb::cast<const char*>(data_type_info_register_cast_str[i])
-                };
-                data_type_infos[i] = data_type_info;
-            }
-
+        "ptx_inject_create",
+        [](const char* processed_ptx_src) {
             PtxInjectHandle handle = nullptr;
-            PtxInjectResult result = 
-                ptx_inject_create(
-                    &handle, 
-                    data_type_infos.data(),
-                    num_data_type_infos,
-                    processed_ptx_src
-                );
-            
+            PtxInjectResult result = ptx_inject_create(&handle, processed_ptx_src);
             return nb::make_tuple(
                 nb::cast(result),
                 handle ? nb::capsule(handle, "PtxInjectHandle") : nb::none()
             );
         },
-        nb::arg("data_type_info_names"),
-        nb::arg("data_type_info_register_types"),
-        nb::arg("data_type_info_mov_postfixes"),
-        nb::arg("data_type_info_register_char"),
-        nb::arg("data_type_info_register_cast_str"),
         nb::arg("processed_ptx_src"),
-       "Creates a PtxInject handle from PTX source. Returns a tuple (result, handle)."
+        "Creates a PtxInject handle from PTX source. Returns a tuple (result, handle)."
     );
 
     m.def(
-        "ptx_inject_destroy", 
+        "ptx_inject_destroy",
         [](nb::capsule handle) {
             PtxInjectHandle ptx_handle = static_cast<PtxInjectHandle>(handle.data());
             PtxInjectResult result = ptx_inject_destroy(ptx_handle);
             return nb::cast(result);
-        }, 
+        },
         nb::arg("handle"),
-       "Destroys a PtxInject handle. Returns the result of the operation."
+        "Destroys a PtxInject handle. Returns the result of the operation."
     );
 
     m.def(
-        "ptx_inject_num_injects", 
-        [](
-            nb::capsule handle
-        ) {
+        "ptx_inject_num_injects",
+        [](nb::capsule handle) {
             PtxInjectHandle ptx_handle = static_cast<PtxInjectHandle>(handle.data());
             size_t num_injects = 0;
             PtxInjectResult result = ptx_inject_num_injects(ptx_handle, &num_injects);
-            
             return nb::make_tuple(
                 nb::cast(result),
                 nb::cast(num_injects)
             );
-        }, 
+        },
         nb::arg("handle"),
-       "Gets the number of injections for a PtxInject handle. Returns a tuple (result, num_injects)."
+        "Gets the number of injections for a PtxInject handle. Returns a tuple (result, num_injects)."
     );
 
     m.def(
-        "ptx_inject_inject_info_by_name", 
-        [](
-            nb::capsule handle, 
-            const char* inject_name
-        ) {
+        "ptx_inject_inject_info_by_name",
+        [](nb::capsule handle, const char* inject_name) {
             PtxInjectHandle ptx_handle = static_cast<PtxInjectHandle>(handle.data());
             size_t inject_idx = 0;
             size_t inject_num_args = 0;
             size_t inject_num_sites = 0;
-            PtxInjectResult result = 
+            PtxInjectResult result =
                 ptx_inject_inject_info_by_name(
-                    ptx_handle, 
-                    inject_name, 
-                    &inject_idx, 
-                    &inject_num_args, 
+                    ptx_handle,
+                    inject_name,
+                    &inject_idx,
+                    &inject_num_args,
                     &inject_num_sites
                 );
-            
+
             return nb::make_tuple(
                 nb::cast(result),
                 nb::cast(inject_idx),
                 nb::cast(inject_num_args),
                 nb::cast(inject_num_sites)
             );
-        }, 
-        nb::arg("handle"), 
+        },
+        nb::arg("handle"),
         nb::arg("inject_name"),
-       "Gets injection info by name for a PtxInject handle. Returns a tuple (result, inject_idx, inject_num_args, inject_num_sites)."
+        "Gets injection info by name for a PtxInject handle. Returns a tuple (result, inject_idx, inject_num_args, inject_num_sites)."
     );
 
     m.def(
-        "ptx_inject_inject_info_by_index", 
-        [](
-            nb::capsule handle, 
-            size_t inject_idx
-        ) {
+        "ptx_inject_inject_info_by_index",
+        [](nb::capsule handle, size_t inject_idx) {
             PtxInjectHandle ptx_handle = static_cast<PtxInjectHandle>(handle.data());
             const char* inject_name = nullptr;
             size_t inject_num_args = 0;
             size_t inject_num_sites = 0;
-            PtxInjectResult result = 
+            PtxInjectResult result =
                 ptx_inject_inject_info_by_index(
-                    ptx_handle, 
-                    inject_idx, 
-                    &inject_name, 
+                    ptx_handle,
+                    inject_idx,
+                    &inject_name,
                     &inject_num_args,
                     &inject_num_sites
                 );
-            
+
             return nb::make_tuple(
                 nb::cast(result),
                 inject_name ? nb::cast(inject_name) : nb::none(),
                 nb::cast(inject_num_args),
                 nb::cast(inject_num_sites)
             );
-        }, 
-        nb::arg("handle"), 
+        },
+        nb::arg("handle"),
         nb::arg("inject_idx"),
-       "Gets injection info by index for a PtxInject handle. Returns a tuple (result, inject_name, inject_num_args, inject_num_sites)."
+        "Gets injection info by index for a PtxInject handle. Returns a tuple (result, inject_name, inject_num_args, inject_num_sites)."
     );
 
     m.def(
-        "ptx_inject_variable_info_by_name", 
-        [](
-            nb::capsule handle, 
-            size_t inject_idx, 
-            const char* inject_variable_name
-        ) {
+        "ptx_inject_variable_info_by_name",
+        [](nb::capsule handle, size_t inject_idx, const char* inject_variable_name) {
             PtxInjectHandle ptx_handle = static_cast<PtxInjectHandle>(handle.data());
-            size_t inject_variable_arg_idx = 0; // Initialize output parameters
-            PtxInjectMutType inject_variable_mut_type;
-            size_t inject_variable_data_type;
-            const char* inject_variable_stable_register_name = nullptr;
-            PtxInjectResult result = 
+            size_t inject_variable_arg_idx = 0;
+            const char* inject_variable_register_name = nullptr;
+            PtxInjectMutType inject_variable_mut_type = PTX_INJECT_MUT_TYPE_NUM_ENUMS;
+            const char* inject_variable_register_type = nullptr;
+            const char* inject_variable_data_type = nullptr;
+            PtxInjectResult result =
                 ptx_inject_variable_info_by_name(
-                    ptx_handle, 
-                    inject_idx, 
-                    inject_variable_name, 
-                    &inject_variable_arg_idx, 
-                    &inject_variable_mut_type, 
-                    &inject_variable_data_type, 
-                    &inject_variable_stable_register_name
+                    ptx_handle,
+                    inject_idx,
+                    inject_variable_name,
+                    &inject_variable_arg_idx,
+                    &inject_variable_register_name,
+                    &inject_variable_mut_type,
+                    &inject_variable_register_type,
+                    &inject_variable_data_type
                 );
-            
+
             return nb::make_tuple(
                 nb::cast(result),
                 nb::cast(inject_variable_arg_idx),
+                inject_variable_register_name ? nb::cast(inject_variable_register_name) : nb::none(),
                 nb::cast(inject_variable_mut_type),
-                nb::cast(inject_variable_data_type),
-                inject_variable_stable_register_name ? nb::cast(inject_variable_stable_register_name) : nb::none()
+                inject_variable_register_type ? nb::cast(inject_variable_register_type) : nb::none(),
+                inject_variable_data_type ? nb::cast(inject_variable_data_type) : nb::none()
             );
-        }, 
-        nb::arg("handle"), 
-        nb::arg("inject_idx"), 
+        },
+        nb::arg("handle"),
+        nb::arg("inject_idx"),
         nb::arg("inject_variable_name"),
-       "Gets variable info by name for a PtxInject handle. Returns a tuple (result, inject_variable_arg_idx, inject_variable_mut_type, inject_variable_data_type, inject_variable_stable_register_name)."
+        "Gets variable info by name for a PtxInject handle. Returns a tuple (result, inject_variable_arg_idx, register_name, mut_type, register_type, data_type)."
     );
 
     m.def(
-        "ptx_inject_variable_info_by_index", 
-        [](
-            nb::capsule handle, 
-            size_t inject_idx, 
-            size_t inject_variable_arg_idx
-        ) {
+        "ptx_inject_variable_info_by_index",
+        [](nb::capsule handle, size_t inject_idx, size_t inject_variable_arg_idx) {
             PtxInjectHandle ptx_handle = static_cast<PtxInjectHandle>(handle.data());
-            const char* inject_variable_name = nullptr; // Initialize output parameters
-            PtxInjectMutType inject_variable_mut_type;
-            size_t inject_variable_data_type;
-            const char* inject_variable_stable_register_name = nullptr;
-            PtxInjectResult result = 
+            const char* inject_variable_name = nullptr;
+            const char* inject_variable_register_name = nullptr;
+            PtxInjectMutType inject_variable_mut_type = PTX_INJECT_MUT_TYPE_NUM_ENUMS;
+            const char* inject_variable_register_type = nullptr;
+            const char* inject_variable_data_type = nullptr;
+            PtxInjectResult result =
                 ptx_inject_variable_info_by_index(
-                    ptx_handle, 
-                    inject_idx, 
-                    inject_variable_arg_idx, 
-                    &inject_variable_name, 
-                    &inject_variable_mut_type, 
-                    &inject_variable_data_type, 
-                    &inject_variable_stable_register_name
+                    ptx_handle,
+                    inject_idx,
+                    inject_variable_arg_idx,
+                    &inject_variable_name,
+                    &inject_variable_register_name,
+                    &inject_variable_mut_type,
+                    &inject_variable_register_type,
+                    &inject_variable_data_type
                 );
-            
+
             return nb::make_tuple(
                 nb::cast(result),
                 inject_variable_name ? nb::cast(inject_variable_name) : nb::none(),
+                inject_variable_register_name ? nb::cast(inject_variable_register_name) : nb::none(),
                 nb::cast(inject_variable_mut_type),
-                nb::cast(inject_variable_data_type),
-                inject_variable_stable_register_name ? nb::cast(inject_variable_stable_register_name) : nb::none()
+                inject_variable_register_type ? nb::cast(inject_variable_register_type) : nb::none(),
+                inject_variable_data_type ? nb::cast(inject_variable_data_type) : nb::none()
             );
-        }, 
-        nb::arg("handle"), 
-        nb::arg("inject_idx"), 
+        },
+        nb::arg("handle"),
+        nb::arg("inject_idx"),
         nb::arg("inject_variable_arg_idx"),
-       "Gets variable info by index for a PtxInject handle. Returns a tuple (result, inject_variable_name, inject_variable_mut_type, inject_variable_data_type, inject_variable_stable_register_name)."
+        "Gets variable info by index for a PtxInject handle. Returns a tuple (result, inject_variable_name, register_name, mut_type, register_type, data_type)."
     );
 
     m.def(
-        "ptx_inject_render_ptx", 
-        [](
-            nb::capsule handle, 
-            nb::list ptx_stubs, 
-            nb::object rendered_ptx_buffer_obj
-        ) {
+        "ptx_inject_render_ptx",
+        [](nb::capsule handle, nb::list ptx_stubs, nb::object rendered_ptx_buffer_obj) {
             PtxInjectHandle ptx_handle = static_cast<PtxInjectHandle>(handle.data());
-            
+
             size_t num_ptx_stubs = ptx_stubs.size();
             std::vector<const char*> ptx_stubs_array(num_ptx_stubs);
             for (size_t i = 0; i < num_ptx_stubs; ++i) {
                 ptx_stubs_array[i] = nb::cast<const char*>(ptx_stubs[i]);
             }
-            
+
             size_t rendered_ptx_buffer_size = 0;
             size_t rendered_ptx_bytes_written = 0;
             char* rendered_ptx_buffer = nullptr;
@@ -355,7 +230,7 @@ NB_MODULE(_ptx_inject, m) {
             } else if (!rendered_ptx_buffer_obj.is_none()) {
                 nb::raise_type_error("rendered_ptx_buffer must be bytearray or None");
             }
-            
+
             PtxInjectResult result = ptx_inject_render_ptx(
                 ptx_handle,
                 num_ptx_stubs > 0 ? ptx_stubs_array.data() : nullptr,
@@ -364,15 +239,15 @@ NB_MODULE(_ptx_inject, m) {
                 rendered_ptx_buffer_size,
                 &rendered_ptx_bytes_written
             );
-            
+
             return nb::make_tuple(
                 nb::cast(result),
                 nb::cast(rendered_ptx_bytes_written)
             );
-        }, 
-        nb::arg("handle"), 
-        nb::arg("ptx_stubs"), 
+        },
+        nb::arg("handle"),
+        nb::arg("ptx_stubs"),
         nb::arg("rendered_ptx_buffer") = nb::none(),
-       "Renders PTX code for a PtxInject handle. Returns a tuple (result, rendered_ptx_bytes_written)."
+        "Renders PTX code for a PtxInject handle. Returns a tuple (result, rendered_ptx_bytes_written)."
     );
 }

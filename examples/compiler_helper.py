@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-from cuda.core.experimental import Device, Program, ProgramOptions
+from cuda.core import Device, Program, ProgramOptions
 
 from mm_ptx import get_include_dir
 

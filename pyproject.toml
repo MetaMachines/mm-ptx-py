@@ -4,14 +4,14 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "mm-ptx"
-version = "1.0.0"
+version = "1.0.1"
 authors = [{name = "MetaMachines LLC", email = "contact@metamachines.co"}]
 description = "PTX Inject and Stack PTX for Python"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {file = "LICENSE"}
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",

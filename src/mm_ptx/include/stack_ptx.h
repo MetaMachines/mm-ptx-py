@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 MetaMachines LLC
+ * Copyright (c) 2026 MetaMachines LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,7 @@
 #define STACK_PTX_VERSION_PATCH 0 //!< Stack PTX patch version.
 
 /**
- * \brief String representation of the Stack PTX library version (e.g., "1.0.0").
+ * \brief String representation of the Stack PTX library version (e.g., "1.0.1").
  */
 #define STACK_PTX_VERSION_STRING "1.0.0"
 

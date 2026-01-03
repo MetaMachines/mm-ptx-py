@@ -7,70 +7,41 @@ import os
 
 import mm_ptx.stack_ptx as stack_ptx
 
-# Use the upper directory helpers
+# Use the upper directory helpers.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from stack_ptx_default_types import Stack, PtxInstruction
 from stack_ptx_default_types import compiler as stack_ptx_compiler
 
+# Describe which registers map to which Stack PTX stacks.
 registry = stack_ptx.RegisterRegistry()
-registry.add("in_0",    Stack.u32)
-registry.add("in_1",    Stack.u32)
-registry.add("out_0",   Stack.u32)
-registry.add("out_1",   Stack.u32)
+registry.add("in_0", Stack.f32)
+registry.add("in_1", Stack.f32)
+registry.add("out_0", Stack.f32)
 registry.freeze()
 
-# Describe the instructions we'd like to run as a list.
+# Instructions: out_0 = in_0 * in_1 + in_0
 instructions = [
-    # Push the constant '1' on to the u32 stack.
-    Stack.u32.constant(1),
-    # ...
-    Stack.u32.constant(2),
-    Stack.u32.constant(3),
-    Stack.u32.constant(4),
-    Stack.u32.constant(5),
-    Stack.u32.constant(6),
-
-    # Push the constant '3' on to the meta stack.
-    Stack.meta_constant(3), 
-
-    # Use the yank_dup meta instruction with the 3 being popped from the meta stack as a parameter,
-    # This will go 3 deep in to the u32 stack and duplicate the value and push it on the top of the u32 stack.
-    Stack.u32.yank_dup,   
-
-    # Push register 'in_0' on to it's described stack (in this case u32).
-    registry.in_0,
-
-    # Push register 'in_1' on to it's described stack (in this case u32).
-    registry.in_1,
-
-    # Run the "add_u32" ptx instruction. This requires two values in the u32 stack which will be popped.
-    # The result will be push on to the u32 stack. If the stack doesn't have the two values in the u32 stack
-    # to use as operands, it will be skipped.
-    PtxInstruction.add_u32,
-
-    # ...
-    PtxInstruction.add_u32,
+    registry.in_0,                  # Push in_0
+    registry.in_1,                  # Push in_1
+    PtxInstruction.mul_ftz_f32,     # Pop, Pop, Push in_0 * in_1
+    registry.in_0,                  # Push in_0
+    PtxInstruction.add_ftz_f32,     # Pop, Pop, Push in_0 * in_1 + in_0
 ]
 
-# Now we make our requests. 
-# out_0 will demand a value from the top of the u32 due to being declared a u32 value in the Register enum.
-# if there is a value in the u32 stack, it will be popped and assigned to the register "out_0" in PTX.
-# out_1 will demand the next value and if present will be assigned to the register "out_1" in PTX.
-requests = [registry.out_0, registry.out_1]
+# Request the top value of the f32 stack into out_0.
+requests = [registry.out_0]
 
-# Now we run the Stack PTX to grab the buffer.
-ptx_stub = \
-    stack_ptx_compiler.compile(
-        registry=registry,
-        instructions=instructions, 
-        requests=requests,
-        # How many instructions to run before we halt.
-        execution_limit=100,
-        max_ast_size=100,
-        max_ast_to_visit_stack_depth=20,
-        stack_size=128,
-        max_frame_depth=4
-    )
+# Compile the Stack PTX program into a PTX stub.
+ptx_stub = stack_ptx_compiler.compile(
+    registry=registry,
+    instructions=instructions,
+    requests=requests,
+    execution_limit=100,
+    max_ast_size=100,
+    max_ast_to_visit_stack_depth=20,
+    stack_size=128,
+    max_frame_depth=4
+)
 
 print(ptx_stub)

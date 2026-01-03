@@ -25,6 +25,7 @@ from compiler_helper import NvCompilerHelper
 
 ptx_header = get_ptx_inject_header().replace("\\", "/")
 
+# Inline CUDA with a PTX_INJECT site we can patch from Python.
 cuda_code = f"""
 #include \"{ptx_header}\"
 
@@ -46,10 +47,12 @@ kernel() {{
 }}
 """
 
+# Compile CUDA to annotated PTX.
 nv_compiler = NvCompilerHelper()
 
 annotated_ptx = nv_compiler.cuda_to_ptx(cuda_code)
 
+# Parse inject sites and inspect their arguments.
 inject = ptx_inject.PTXInject(annotated_ptx)
 
 inject.print_injects()
@@ -65,25 +68,30 @@ assert func["y"].data_type == "F32"
 assert func["z"].mut_type == ptx_inject.MutType.OUT
 assert func["z"].data_type == "F32"
 
+# Bind PTX register names to Stack PTX registers.
 registry = stack_ptx.RegisterRegistry()
 registry.add(func["x"].reg, Stack.f32, name="x")
 registry.add(func["y"].reg, Stack.f32, name="y")
 registry.add(func["z"].reg, Stack.f32, name="z")
 registry.freeze()
 
+# Emit instructions for z = (x + y) + (x + y) * x.
 instructions = [
-    registry.x,
-    registry.y,
-    PtxInstruction.add_ftz_f32,
-    Stack.f32.dup,
-    registry.x,
-    PtxInstruction.add_ftz_f32,
+    registry.x,                     # Push x: [x]
+    registry.y,                     # Push y: [x,y]
+    PtxInstruction.add_ftz_f32,     # Pop x, y, Push x + y: [x + y]
+    Stack.f32.dup,                  # Duplicate, Push (x + y): [x + y, x + y]
+    registry.x,                     # Push x: [x + y, x + y, x]
+    PtxInstruction.mul_ftz_f32,     # Pop two from top, Push... : [x + y, (x + y) * x]
+    PtxInstruction.add_ftz_f32      # Pop two, Push... : [(x + y) + (x + y) * x]
 ]
 
 print(instructions)
 
+# Request values for z and y from the top of the stack.
 requests = [registry.z, registry.y]
 
+# Compile Stack PTX to a stub and inject it.
 ptx_stub = stack_ptx_compiler.compile(
     registry=registry,
     instructions=instructions,
@@ -102,6 +110,7 @@ ptx_stubs = {
 
 rendered_ptx = inject.render_ptx(ptx_stubs)
 
+# Compile injected PTX to a cubin and launch.
 mod = nv_compiler.ptx_to_cubin(rendered_ptx)
 
 ker = mod.get_kernel("kernel")
@@ -115,5 +124,5 @@ stream = nv_compiler.dev.default_stream
 
 launch(stream, config, ker, *ker_args)
 
-print("Should print 18.0000")
+print("Should print 48.0000")
 stream.sync()

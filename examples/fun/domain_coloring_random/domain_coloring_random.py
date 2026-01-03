@@ -7,8 +7,9 @@ import os
 
 import mm_ptx.ptx_inject as ptx_inject
 import mm_ptx.stack_ptx as stack_ptx
+from mm_ptx import get_ptx_inject_header
 
-from cuda.core.experimental import LaunchConfig, launch
+from cuda.core import LaunchConfig, launch
 
 import torch
 import numpy as np
@@ -19,7 +20,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 this_dir = os.path.dirname(__file__)
 print(this_dir)
 
-from ptx_inject_default_types import DataTypeInfo
 from stack_ptx_default_types import Stack, PtxInstruction
 from stack_ptx_default_types import compiler as stack_ptx_compiler
 from compiler_helper import NvCompilerHelper
@@ -27,7 +27,11 @@ from compiler_helper import NvCompilerHelper
 from helpers import generate_gif, montage_tensors
 from generator_instructions import Generator
 
-cuda_code = r"""
+ptx_header = get_ptx_inject_header().replace("\\", "/")
+
+cuda_code = (
+    f"#include \"{ptx_header}\"\n"
+    r"""
 
 #define PI 3.1415926535897932384626433832795L
 
@@ -119,13 +123,13 @@ kernel(
         float t = (float)batch_num * time_step;
         float f = 0.0f;
         float g = 0.0f;
-        /* PTX_INJECT func
-            in f32 t
-            in f32 w_norm
-            in f32 h_norm
-            out f32 f
-            out f32 g
-        */
+        PTX_INJECT("func",
+            PTX_IN (F32, t, t),
+            PTX_IN (F32, w_norm, w_norm),
+            PTX_IN (F32, h_norm, h_norm),
+            PTX_OUT(F32, f, f),
+            PTX_OUT(F32, g, g)
+        );
         float theta = atan2(g,f);
         float norm = sqrt(f*f + g*g);
         float log_max_norm = apply_log_filter(true, max_norm, log_multiplier);
@@ -140,10 +144,8 @@ kernel(
     }
 }
 """
+)
 
-
-processed_cuda, num_injects = ptx_inject.process_cuda(DataTypeInfo, cuda_code)
-assert(num_injects == 1)
 
 nv_compiler = NvCompilerHelper()
 dev = nv_compiler.dev
@@ -195,28 +197,28 @@ def run_kernel(
     out = out.view(torch.uint8).reshape(num_batches, height, width, 4)
     return out
 
-annotated_ptx = nv_compiler.cuda_to_ptx(processed_cuda)
+annotated_ptx = nv_compiler.cuda_to_ptx(cuda_code)
 
-inject = ptx_inject.PTXInject(DataTypeInfo, annotated_ptx)
+inject = ptx_inject.PTXInject(annotated_ptx)
 
 inject.print_injects()
 
 func = inject['func']
 
 assert( func['t'].mut_type == ptx_inject.MutType.IN )
-assert( func['t'].data_type == DataTypeInfo.F32 )
+assert( func['t'].data_type == "F32" )
 
 assert( func['w_norm'].mut_type == ptx_inject.MutType.IN )
-assert( func['w_norm'].data_type == DataTypeInfo.F32 )
+assert( func['w_norm'].data_type == "F32" )
 
 assert( func['h_norm'].mut_type == ptx_inject.MutType.IN )
-assert( func['h_norm'].data_type == DataTypeInfo.F32 )
+assert( func['h_norm'].data_type == "F32" )
 
 assert( func['f'].mut_type == ptx_inject.MutType.OUT )
-assert( func['f'].data_type == DataTypeInfo.F32 )
+assert( func['f'].data_type == "F32" )
 
 assert( func['g'].mut_type == ptx_inject.MutType.OUT )
-assert( func['g'].data_type == DataTypeInfo.F32 )
+assert( func['g'].data_type == "F32" )
 
 registry = stack_ptx.RegisterRegistry()
 registry.add(func['t'].reg,         Stack.f32, name = 't')
@@ -297,4 +299,3 @@ for i in range(64):
 grid_tensor = montage_tensors(outs, 8, 8)
 
 generate_gif('domain_coloring_output.gif', grid_tensor, duration=100)
-

@@ -114,8 +114,8 @@ void kernel(float* out) {
 
 ### Stack PTX instruction descriptions
 The instruction definitions are defined by the user and are not part of the core Stack PTX system. This allows customization of the described instructions to fit the users demands.
-- Minimal example of PTX instruction and type definitions: [examples/stack_ptx_default_types.py](examples/stack_ptx_default_types.py)
-- More extensive example: [examples/stack_ptx_extended_types.py](examples/stack_ptx_extended_types.py)
+- Minimal example of PTX instruction and type definitions: [examples/stack_ptx_default_types.py](https://github.com/MetaMachines/mm-ptx-py/blob/master/examples/stack_ptx_default_types.py)
+- More extensive example: [examples/stack_ptx_extended_types.py](https://github.com/MetaMachines/mm-ptx-py/blob/master/examples/stack_ptx_extended_types.py)
 
 ## Install
 ```bash
@@ -136,10 +136,10 @@ CUDA integration tests are skipped by default. To run them (requires `cuda.core`
 ```
 
 ## Examples
-- [PTX Inject](examples/ptx_inject/)
-- [Stack PTX](examples/stack_ptx/)
-- [PTX Inject + Stack PTX](examples/stack_ptx_inject/)
-- [Fun](examples/fun/README.md)
+- [PTX Inject](https://github.com/MetaMachines/mm-ptx-py/tree/master/examples/ptx_inject)
+- [Stack PTX](https://github.com/MetaMachines/mm-ptx-py/tree/master/examples/stack_ptx)
+- [PTX Inject + Stack PTX](https://github.com/MetaMachines/mm-ptx-py/tree/master/examples/stack_ptx_inject)
+- [Fun](https://github.com/MetaMachines/mm-ptx-py/blob/master/examples/fun/README.md)
 
 ## More details
 For the C/C++ headers and deeper implementation notes, see the mm-ptx repo:

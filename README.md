@@ -14,7 +14,7 @@ Explore working examples:
 - [Combined PTX Inject + Stack PTX examples](examples/stack_ptx_inject/)
 - [Fun examples](examples/fun/README.md)
 
-The C based header files where most of the functionality is implemented is [ptx_inject.h](src/bindings/ptx_inject.h) and [stack_ptx.h](src/bindings/stack_ptx.h). If you are interested in running these with lower overhead in C/C++ or with parallel compilation see examples in [mm-ptx](https://github.com/MetaMachines/mm-ptx).
+The C header files are bundled at [ptx_inject.h](src/mm_ptx/include/ptx_inject.h) and [stack_ptx.h](src/mm_ptx/include/stack_ptx.h). You can access their install path from Python via `mm_ptx.get_include_dir()`. If you are interested in running these with lower overhead in C/C++ or with parallel compilation see examples in [mm-ptx](https://github.com/MetaMachines/mm-ptx).
 
 [mm-kermac-py](https://github.com/MetaMachines/mm-kermac-py) uses **PTX Inject** and **Stack PTX** to allow users to dynamically create custom [semiring](https://en.wikipedia.org/wiki/Semiring) and semiring gradient PyTorch Tensor kernels with arbitrary amounts of hyperparameters. Recompilation of it's custom [CuTe](https://github.com/NVIDIA/cutlass/blob/main/media/docs/cpp/cute/00_quickstart.md) CUDA kernels can take **~3 seconds**, however recompiling the CuTe kernel from PTX to SASS with injected PTX code takes as little as **60ms**.
 
@@ -32,39 +32,57 @@ This package has no dependency on NVIDIA CUDA toolkit or other tools beyond nano
 For dependencies running the mm-ptx examples see [examples/README.md](examples/README.md)
 
 ## PTX Inject
-PTX Inject is a lightweight tool that enables dynamic modification of compiled GPU kernels by injecting custom low-level code (PTX) at user-specified points in annotated CUDA source. This allows for ultra-fast kernel variations and optimizations—ideal for algorithmic tuning, performance testing, or machine-driven experiments—without the overhead of full recompilation using tools like `nvcc` or `nvrtc`.
+PTX Inject is a lightweight tool that enables dynamic modification of compiled GPU kernels by injecting custom low-level code (PTX) at user-specified macro sites in CUDA source. This allows for ultra-fast kernel variations and optimizations—ideal for algorithmic tuning, performance testing, or machine-driven experiments—without the overhead of full recompilation using tools like `nvcc` or `nvrtc`.
 
-By processing annotated kernels, it extracts register mappings and prepares templates for injection, achieving preparation in milliseconds and supporting tens of thousands of injections per second per CPU core. The result is efficient, parallelizable compilation to executable GPU code (SASS) using `ptxas` or [`nvPtxCompiler`](https://docs.nvidia.com/cuda/ptx-compiler-api/index.html), making it suitable for high-throughput workflows in compute-intensive applications like machine learning or scientific simulations.
+By parsing PTX markers emitted by the `PTX_INJECT` macros, it extracts register mappings and prepares templates for injection, achieving preparation in milliseconds and supporting tens of thousands of injections per second per CPU core. The result is efficient, parallelizable compilation to executable GPU code (SASS) using `ptxas` or [`nvPtxCompiler`](https://docs.nvidia.com/cuda/ptx-compiler-api/index.html), making it suitable for high-throughput workflows in compute-intensive applications like machine learning or scientific simulations.
 
 Key features:
 
-* **Annotation-Based Injection**: Mark sites in CUDA kernels with simple comments 
-    ```c
+* **Macro-Based Injection**: Mark sites in CUDA kernels with PTX macros.
+    ```c++
+    #include <stdio.h>
+    #include <ptx_inject.h>
+
     extern "C"
     __global__
     void kernel() {
-        // PTX Inject will give you the PTX Register name/s for these
-        float x = 3.0f; 
+        float x = 3.0f;
         float y = 4.0f;
         float z;
-        /* PTX_INJECT func  
-            in f32 x
-            in f32 y 
-            out f32 z
-        */
-        printf("z: %f\n");
+        PTX_INJECT("func",
+            PTX_IN (F32, x, x),
+            PTX_IN (F32, y, y),
+            PTX_OUT(F32, z, z)
+        );
+        printf("z: %f\n", z);
     }
     ```
 
-* **Register Mapping Extraction**: Automatically processes annotations to map CUDA variables to PTX registers, handling multiple site inlining and loop unrolling.
+* **Register Mapping Extraction**: Parses PTX markers to map CUDA variables to stable PTX registers, handling multiple site inlining and loop unrolling.
 
 * **High Performance**: Prepares templates in **~4ms** and supports **~10,000** injections per second per CPU core.
 
 * **Parallel Compilation**: Outputs PTX ready for fast compilation to SASS using the PTX Compiler API, with loading times under 1ms.
 
-* **Customizable Data Types**: Using Python you can describe the names and types used in the `PTX_INJECT` annotation. See [ptx_inject_default_types.py](examples/ptx_inject_default_types.py).
+* **Customizable Type Tokens**: Define `PTX_TYPE_INFO_<TOKEN>` in CUDA to add new tokens. In Python, `InjectArg.data_type` is the token string (for example, `F32`).
 
 * **No Dependencies**: Pure C99 implementation with Python bindings for easy use.
+
+### CUDA header access
+The package bundles `ptx_inject.h` for use with `nvcc`, `nvrtc`, or `cuda.core`:
+
+```python
+from mm_ptx import get_include_dir, get_ptx_inject_header
+
+include_dir = get_include_dir()
+header_path = get_ptx_inject_header().replace("\\", "/")
+```
+
+Pass `include_dir` to your compiler options, or include the header by absolute path in your CUDA source:
+
+```c++
+#include "<header_path>"
+```
 
 A simple full working example can be found [here](examples/ptx_inject/00_simple.py).
 
@@ -119,7 +137,7 @@ If you use this software in your work, please cite it using the following BibTeX
 @software{Durham_mm-ptx_2025,
   author       = {Durham, Charlie},
   title        = {mm-ptx: PTX Inject and Stack PTX for Python},
-  version      = {0.1.2},
+  version      = {1.0.0},
   date-released = {2025-10-19},
   url          = {https://github.com/MetaMachines/mm-ptx-py}
 }

@@ -17,14 +17,22 @@ if(BUILD_PYTHON_BINDINGS)
                 _ptx_inject
                 src/bindings/ptx_inject_bindings.cpp
             )
-            target_include_directories(_ptx_inject PRIVATE src/bindings)
+            target_include_directories(_ptx_inject PRIVATE src/mm_ptx/include)
             install(TARGETS _ptx_inject LIBRARY DESTINATION mm_ptx/ptx_inject/_impl)
             nanobind_add_module(
                 _stack_ptx
                 src/bindings/stack_ptx_bindings.cpp
             )
-            target_include_directories(_stack_ptx PRIVATE src/bindings)
+            target_include_directories(_stack_ptx PRIVATE src/mm_ptx/include)
             install(TARGETS _stack_ptx LIBRARY DESTINATION mm_ptx/stack_ptx/_impl)
+            install(DIRECTORY
+                src/mm_ptx/include/
+                DESTINATION mm_ptx/include
+                FILES_MATCHING
+                PATTERN "*.h"
+                PATTERN "*.hpp"
+                PATTERN "LICENSE_1_0.txt"
+            )
         else()
             message(WARNING "Nanobind not found. Disabling Python bindings.")
             set(BUILD_PYTHON_BINDINGS OFF)

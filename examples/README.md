@@ -16,5 +16,5 @@ depending on your cuda toolkit supported version.
 To get all of the examples working you'll need:
 
 ```bash
-pip install Pillow opencv-python torch
+pip install Pillow opencv-python torch numpy
 ```

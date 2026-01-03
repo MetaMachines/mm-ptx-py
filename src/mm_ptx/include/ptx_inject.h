@@ -30,8 +30,6 @@
 #ifndef PTX_INJECT_H_INCLUDE
 #define PTX_INJECT_H_INCLUDE
 
-#if !defined(__CUDACC_RTC__)
-
 #define PTX_INJECT_VERSION_MAJOR 1 //!< PTX Inject major version.
 #define PTX_INJECT_VERSION_MINOR 0 //!< PTX Inject minor version.
 #define PTX_INJECT_VERSION_PATCH 0 //!< PTX Inject patch version.
@@ -43,6 +41,7 @@
 
 #define PTX_INJECT_VERSION (PTX_INJECT_VERSION_MAJOR * 10000 + PTX_INJECT_VERSION_MINOR * 100 + PTX_INJECT_VERSION_PATCH)
 
+#if !defined(__CUDACC_RTC__)
 
 #ifdef __cplusplus
 #define PTX_INJECT_PUBLIC_DEC extern "C"

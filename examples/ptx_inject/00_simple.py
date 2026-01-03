@@ -16,6 +16,7 @@ from compiler_helper import NvCompilerHelper
 
 ptx_header = get_ptx_inject_header().replace("\\", "/")
 
+# Inline CUDA with a PTX_INJECT site we can patch from Python.
 cuda_code = f"""
 #include \"{ptx_header}\"
 
@@ -37,10 +38,12 @@ kernel() {{
 }}
 """
 
+# Compile CUDA to annotated PTX.
 nv_compiler = NvCompilerHelper()
 
 annotated_ptx = nv_compiler.cuda_to_ptx(cuda_code)
 
+# Parse inject sites and inspect their arguments.
 inject = ptx_inject.PTXInject(annotated_ptx)
 
 inject.print_injects()
@@ -56,6 +59,7 @@ assert func["y"].data_type == "F32"
 assert func["z"].mut_type == ptx_inject.MutType.OUT
 assert func["z"].data_type == "F32"
 
+# Build a stub that adds x + y into y, then x + y into z.
 ptx_stubs = {
     "func": f"\tadd.ftz.f32 %{func['y'].reg}, %{func['x'].reg}, %{func['y'].reg};\n"
             f"\tadd.ftz.f32 %{func['z'].reg}, %{func['x'].reg}, %{func['y'].reg};"
@@ -63,6 +67,7 @@ ptx_stubs = {
 
 rendered_ptx = inject.render_ptx(ptx_stubs)
 
+# Compile injected PTX to a cubin and launch.
 mod = nv_compiler.ptx_to_cubin(rendered_ptx)
 
 ker = mod.get_kernel("kernel")

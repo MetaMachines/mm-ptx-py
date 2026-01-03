@@ -55,6 +55,7 @@ void kernel(float* out) {
 }
 ```
 
+## Stack PTX: stack-based instruction compiler
 If you do not want to hand-write PTX, you can use Stack PTX to generate the stub:
 ```python
 from mm_ptx.stack_ptx import RegisterRegistry
@@ -101,18 +102,9 @@ void kernel(float* out) {
 }
 ```
 
-## Header access
-```python
-from mm_ptx import get_include_dir, get_ptx_inject_header
-
-include_dir = get_include_dir()
-header_path = get_ptx_inject_header().replace("\\", "/")
-```
-
-Include the header by absolute path if you want:
-```c++
-#include "<header_path>"
-```
+### Stack PTX instruction descriptions
+- Minimal example of PTX instruction and type definitions: [examples/stack_ptx_default_types.py](examples/stack_ptx_default_types.py)
+- More extensive example: [examples/stack_ptx_extended_types.py](examples/stack_ptx_extended_types.py)
 
 ## Install
 ```bash
@@ -129,9 +121,9 @@ Requires Python 3.9+.
 
 ## More details
 For the C/C++ headers and deeper implementation notes, see the mm-ptx repo:
-- https://github.com/MetaMachines/mm-ptx/blob/dev/README.md
-- https://github.com/MetaMachines/mm-ptx/blob/dev/PTX_INJECT.md
-- https://github.com/MetaMachines/mm-ptx/blob/dev/STACK_PTX.md
+- https://github.com/MetaMachines/mm-ptx/blob/master/README.md
+- https://github.com/MetaMachines/mm-ptx/blob/master/PTX_INJECT.md
+- https://github.com/MetaMachines/mm-ptx/blob/master/STACK_PTX.md
 
 ## License
 MIT. See `LICENSE`.

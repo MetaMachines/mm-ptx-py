@@ -13,12 +13,27 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = REPO_ROOT / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
+EXAMPLES_DIR = REPO_ROOT / "examples"
+for path in (SRC_DIR, EXAMPLES_DIR):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 
 
 from mm_ptx import get_include_dir, get_ptx_inject_header
 from mm_ptx.ptx_inject import PTXInject, MutType
+import mm_ptx.stack_ptx as stack_ptx
+from stack_ptx_default_types import Stack, PtxInstruction
+from stack_ptx_default_types import compiler as stack_ptx_compiler
+
+
+STACK_PTX_KWARGS = {
+    "execution_limit": 100,
+    "max_ast_size": 100,
+    "max_ast_to_visit_stack_depth": 20,
+    "stack_size": 128,
+    "max_frame_depth": 4,
+    "store_size": 16,
+}
 
 
 PTX_SAMPLE = (
@@ -35,24 +50,64 @@ PTX_SAMPLE_TWO = (
     "// pre\n"
     "// PTX_INJECT_START func_a\n"
     "// _x0 i f32 F32 x\n"
+    "// _x1 o f32 F32 y\n"
     "// PTX_INJECT_END\n"
     "// mid\n"
     "// PTX_INJECT_START func_b\n"
-    "// _x0 o f32 F32 y\n"
+    "// _x0 i f32 F32 x\n"
+    "// _x1 o f32 F32 y\n"
     "// PTX_INJECT_END\n"
     "// post\n"
 )
 
-EXPECTED_TWO_SITE_RENDER = (
-    "// pre\n"
-    "/*stub-a*/\n"
-    "// mid\n"
-    "/*stub-b*/\n"
-    "// post\n"
-)
+
+def _compile_stub_xy_to_yz(func) -> str:
+    registry = stack_ptx.RegisterRegistry()
+    registry.add(func["x"].reg, Stack.f32, name="x")
+    registry.add(func["y"].reg, Stack.f32, name="y")
+    registry.add(func["z"].reg, Stack.f32, name="z")
+    registry.freeze()
+
+    instructions = [
+        registry.x,
+        registry.y,
+        PtxInstruction.add_ftz_f32,
+        Stack.f32.dup,
+        registry.x,
+        PtxInstruction.add_ftz_f32,
+    ]
+
+    stub = stack_ptx_compiler.compile(
+        registry=registry,
+        instructions=instructions,
+        requests=[registry.z, registry.y],
+        **STACK_PTX_KWARGS,
+    )
+    return stub.rstrip("\x00")
 
 
-class TestPtxInjectParsing(unittest.TestCase):
+def _compile_stub_xx_to_y(func, op) -> str:
+    registry = stack_ptx.RegisterRegistry()
+    registry.add(func["x"].reg, Stack.f32, name="x")
+    registry.add(func["y"].reg, Stack.f32, name="y")
+    registry.freeze()
+
+    instructions = [
+        registry.x,
+        registry.x,
+        op,
+    ]
+
+    stub = stack_ptx_compiler.compile(
+        registry=registry,
+        instructions=instructions,
+        requests=[registry.y],
+        **STACK_PTX_KWARGS,
+    )
+    return stub.rstrip("\x00")
+
+
+class TestStackPtxInjectParsing(unittest.TestCase):
     def test_parse_and_render(self):
         with PTXInject(PTX_SAMPLE) as inject:
             self.assertEqual(len(inject.injects), 1)
@@ -73,27 +128,38 @@ class TestPtxInjectParsing(unittest.TestCase):
             self.assertEqual(func["z"].register_type, "f32")
             self.assertEqual(func["z"].reg, "_x2")
 
-            rendered = inject.render_ptx({"func": "\t// stub\n"})
+            ptx_stub = _compile_stub_xy_to_yz(func)
+            rendered = inject.render_ptx({"func": ptx_stub})
 
         self.assertIn("// pre", rendered)
         self.assertIn("// post", rendered)
-        self.assertIn("// stub", rendered)
+        self.assertIn("add.ftz.f32", rendered)
+        self.assertIn("mov.f32 %_x2", rendered)
+        self.assertIn("mov.f32 %_x1", rendered)
         self.assertNotIn("PTX_INJECT_START", rendered)
         self.assertNotIn("PTX_INJECT_END", rendered)
 
 
-class TestPtxInjectMultiSite(unittest.TestCase):
+class TestStackPtxInjectMultiSite(unittest.TestCase):
     def test_render_two_sites(self):
         with PTXInject(PTX_SAMPLE_TWO) as inject:
             self.assertEqual(len(inject.injects), 2)
             self.assertEqual(inject.injects[0].name, "func_a")
             self.assertEqual(inject.injects[1].name, "func_b")
-            rendered = inject.render_ptx({"func_a": "/*stub-a*/", "func_b": "/*stub-b*/"})
 
-        self.assertEqual(rendered, EXPECTED_TWO_SITE_RENDER)
+            stub_a = _compile_stub_xx_to_y(inject["func_a"], PtxInstruction.add_ftz_f32)
+            stub_b = _compile_stub_xx_to_y(inject["func_b"], PtxInstruction.mul_ftz_f32)
+            rendered = inject.render_ptx({"func_a": stub_a, "func_b": stub_b})
+
+        self.assertIn("// pre", rendered)
+        self.assertIn("// mid", rendered)
+        self.assertIn("// post", rendered)
+        self.assertIn(stub_a, rendered)
+        self.assertIn(stub_b, rendered)
+        self.assertLess(rendered.index(stub_a), rendered.index(stub_b))
 
 
-class TestPtxInjectCudaIntegration(unittest.TestCase):
+class TestStackPtxInjectCudaIntegration(unittest.TestCase):
     def test_cuda_output_value(self):
         if os.getenv("MM_PTX_RUN_CUDA_TESTS") != "1":
             self.skipTest("Set MM_PTX_RUN_CUDA_TESTS=1 to run CUDA integration tests.")
@@ -159,12 +225,8 @@ kernel(float* out) {{
         annotated_ptx = mod.code.decode("utf-8")
 
         with PTXInject(annotated_ptx) as inject:
-            func = inject["func"]
-            stub = (
-                f"\tadd.ftz.f32 %{func['y'].reg}, %{func['x'].reg}, %{func['y'].reg};\n"
-                f"\tadd.ftz.f32 %{func['z'].reg}, %{func['x'].reg}, %{func['y'].reg};"
-            )
-            rendered_ptx = inject.render_ptx({"func": stub})
+            ptx_stub = _compile_stub_xy_to_yz(inject["func"])
+            rendered_ptx = inject.render_ptx({"func": ptx_stub})
 
         prog = Program(rendered_ptx, code_type="ptx", options=ProgramOptions(arch=arch))
         mod = prog.compile("cubin", logs=sys.stdout)
@@ -194,4 +256,3 @@ kernel(float* out) {{
             self.fail(f"cudaMemcpy failed: {err}")
 
         self.assertAlmostEqual(out_host.value, 18.0, places=3)
-

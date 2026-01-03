@@ -104,6 +104,8 @@ ptx_stub = stack_ptx_compiler.compile(
     store_size=16,
 )
 
+print(ptx_stub)
+
 ptx_stubs = {
     "func": ptx_stub
 }

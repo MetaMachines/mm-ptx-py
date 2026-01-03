@@ -89,6 +89,16 @@ ptx_stub = compiler.compile(
 final_ptx = inject.render_ptx({"func": ptx_stub})
 ```
 
+Printing `ptx_stub` gives:
+```
+    {
+    .reg .f32 %_a<2>;
+    add.ftz.f32 %_a0, %_x0, %_x2;
+    add.ftz.f32 %_a1, %_x2, %_a0;
+    mov.f32 %_x1, %_a1;
+    }
+```
+
 This would be equivalent to writing this CUDA kernel directly but without the CUDA to PTX compilation overhead:
 ```c++
 extern "C"
@@ -103,6 +113,7 @@ void kernel(float* out) {
 ```
 
 ### Stack PTX instruction descriptions
+The instruction definitions are defined by the user and are not part of the core Stack PTX system. This allows customization of the described instructions to fit the users demands.
 - Minimal example of PTX instruction and type definitions: [examples/stack_ptx_default_types.py](examples/stack_ptx_default_types.py)
 - More extensive example: [examples/stack_ptx_extended_types.py](examples/stack_ptx_extended_types.py)
 
@@ -112,6 +123,17 @@ pip install mm-ptx
 ```
 
 Requires Python 3.9+.
+
+## Tests
+```bash
+python -m pip install -e .
+python -m unittest discover -s tests
+```
+
+CUDA integration tests are skipped by default. To run them (requires `cuda.core`, `cuda.bindings`, and a CUDA-capable GPU):
+```bash
+ MM_PTX_RUN_CUDA_TESTS=1 python -m unittest discover -s tests
+```
 
 ## Examples
 - [PTX Inject](examples/ptx_inject/)

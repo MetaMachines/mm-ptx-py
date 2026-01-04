@@ -453,6 +453,22 @@ class StackPtx:
             else:
                 raise ValueError(f"Invalid instruction: {instr}")
 
+        def request_to_idx(request):
+            if hasattr(request, "_rec"):
+                idx = int(request._rec.idx)
+            elif hasattr(request, "idx"):
+                idx = int(request.idx)
+            else:
+                try:
+                    idx = int(request)
+                except (TypeError, ValueError):
+                    raise TypeError(
+                        "requests must be RegisterRegistry symbols, RegisterRecords, or integer indices"
+                    ) from None
+            if idx < 0:
+                raise ValueError("requests indices must be >= 0")
+            return idx
+
         instruction_ret = StackPtxInstruction(
             instruction_type=StackPtxInstructionType.STACK_PTX_INSTRUCTION_TYPE_RETURN,
             stack_idx=0,
@@ -464,7 +480,7 @@ class StackPtx:
         realized_instructions = [realize(instr) for instr in instructions] + [instruction_ret]
         register_names = registry.get_register_names()
         register_stack_types = registry.get_stack_types()
-        requests = [request._rec.idx for request in requests]
+        requests = [request_to_idx(request) for request in requests]
         routines = None
         if routine_enum is not None:
             routines = [[realize(instr) for instr in routine.instructions] + [instruction_ret] for routine in routine_enum]
@@ -522,4 +538,4 @@ class StackPtx:
             buffer
         )
         StackPtxError._check_result(ret)
-        return buffer.decode('utf-8')
+        return buffer[:buffer_size].decode('utf-8')

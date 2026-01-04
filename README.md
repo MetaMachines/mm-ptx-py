@@ -59,7 +59,7 @@ void kernel(float* out) {
 If you do not want to hand-write PTX, you can use Stack PTX to generate the stub:
 ```python
 from mm_ptx.stack_ptx import RegisterRegistry
-from stack_ptx_default_types import Stack, PtxInstruction, compiler
+from mm_ptx.stack_ptx_default_types import Stack, PtxInstruction, compiler
 
 # Setup naming associations
 registry = RegisterRegistry()

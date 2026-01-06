@@ -156,6 +156,12 @@ See the mm-ptx Roadmap for the C/C++ core: https://github.com/MetaMachines/mm-pt
     - Use cases: learned fitness predictors for evolutionary search, behavioral descriptors for MAP-Elites, online feature extraction from kernel executions.
     - Built for small data (500-10,000 rows) with batch sizes in the tens of thousands.
 
+## Community & Support
+We're here to help with your projects and answer questions:
+- **Discord**: Join our community at https://discord.gg/7vS5XQ4bE4 for direct support, discussions, and collaboration.
+- **Twitter/X**: Follow [@_metamachines](https://x.com/_metamachines) for updates and announcements.
+- **Email**: Reach us at contact@metamachines.co
+
 ## More details
 For the C/C++ headers and deeper implementation notes, see the mm-ptx repo:
 - https://github.com/MetaMachines/mm-ptx/blob/master/README.md

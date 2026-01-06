@@ -150,6 +150,12 @@ See the mm-ptx Roadmap for the C/C++ core: https://github.com/MetaMachines/mm-pt
 - **Bulk parallel compilation (Python)**
   - OpenMP-backed interfaces for compiling large batches of Stack PTX stubs and injected kernels directly from Python.
 
+- **In-The-Loop-Learning (ITLL) system (Python Wrapper)**
+    - Closes the optimization loop: when Stack PTX compiles in microseconds and kernels execute in microseconds-to-milliseconds, ML models must operate on the same time horizon to enable real-time kernel optimization.
+    - Training and inference on the order of microseconds per batch means the model keeps pace with kernel generation and execution.
+    - Use cases: learned fitness predictors for evolutionary search, behavioral descriptors for MAP-Elites, online feature extraction from kernel executions.
+    - Built for small data (500-10,000 rows) with batch sizes in the tens of thousands.
+
 ## More details
 For the C/C++ headers and deeper implementation notes, see the mm-ptx repo:
 - https://github.com/MetaMachines/mm-ptx/blob/master/README.md

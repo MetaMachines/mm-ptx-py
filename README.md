@@ -141,6 +141,15 @@ CUDA integration tests are skipped by default. To run them (requires `cuda.core`
 - [PTX Inject + Stack PTX](https://github.com/MetaMachines/mm-ptx-py/tree/master/examples/stack_ptx_inject)
 - [Fun](https://github.com/MetaMachines/mm-ptx-py/blob/master/examples/fun/README.md)
 
+## Recipes
+LLMs (including ChatGPT) are already very good at generating Python that emits Stack PTX in a specific shape. A concrete example is `examples/fun/domain_coloring_random`, which programmatically builds 3-5 terms of the form `sin(...)` or `cos(...)` over nested add/mul expressions of `x`, `y`, and `t`, mixes in random constants, and sums the terms to produce two outputs `f` and `g`. Those expressions are converted into Stack PTX instructions, injected into a CUDA kernel, and used to render animated domain coloring frames on the GPU.
+
+## Roadmap
+See the mm-ptx Roadmap for the C/C++ core: https://github.com/MetaMachines/mm-ptx#roadmap
+
+- **Bulk parallel compilation (Python)**
+  - OpenMP-backed interfaces for compiling large batches of Stack PTX stubs and injected kernels directly from Python.
+
 ## More details
 For the C/C++ headers and deeper implementation notes, see the mm-ptx repo:
 - https://github.com/MetaMachines/mm-ptx/blob/master/README.md
